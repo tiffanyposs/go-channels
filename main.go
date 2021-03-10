@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -17,14 +18,18 @@ func main() {
 	c := make(chan string) // make a new channel with values of type string
 
 	for _, link := range links {
-		go checkLink(link, c)
+		go checkLink(link, c) // pass channel
 	}
 
-	fmt.Println("main", <-c)  // waiting for a message from c
-	fmt.Println("main2", <-c) // waiting for a message from c
-	fmt.Println("main3", <-c) // waiting for a message from c
-	fmt.Println("main4", <-c) // waiting for a message from c
-	fmt.Println("main5", <-c) // waiting for a message from c
+	// wait for the channel to return some value
+	// when it does, assign it to the variable l (link)
+	for l := range c {
+		// Function literal - (anonymous function)
+		go func(link string) {
+			time.Sleep(5*time.Second) // delay 5 seconds
+			checkLink(link, c) // wait for message from c, and call checkLink with the value
+		}(l) // must pass l to copy it, prevents funcy behavior
+	}
 }
 
 func checkLink(link string, c chan string) {
@@ -32,11 +37,11 @@ func checkLink(link string, c chan string) {
 	if err != nil {
 		msg := "might be down!"
 		fmt.Println(link, msg)
-		c <- msg // send the message to the channel
+		c <- link // send the link to the channel
 		return
 	}
 
 	msg := "is up!"
-	fmt.Println(link, "is up!")
-	c <- msg // send the message to the channel
+	fmt.Println(link, msg)
+	c <- link // send the link to the channel
 }
